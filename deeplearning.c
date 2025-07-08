@@ -22,7 +22,7 @@ const int LAYER_SIZE = 16;
 const int OUTPUT_SIZE = 10;
 const int NETWORK_SIZE = 2;
 const float HETA = 0.000085f;
-const int EPOCHS = 50; // Leave at 1, overflow problem at more than 1
+const int EPOCHS = 50;
 
 const char * train_file = "mnist_train.csv";
 const char * test_file = "mnist_test.csv";
