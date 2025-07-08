@@ -22,7 +22,7 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
 
 - `mnist_train.csv` — training data (CSV with labels and pixel values)  
 - `mnist_test.csv` — test data  
-- `main.c` — source code implementing the network, training, and testing
+- `deeplearning.c` — source code implementing the network, training, and testing
 
 ---
 
@@ -45,4 +45,4 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
 1. Compile the program:
 
 ```bash
-gcc -o mnist_dnn main.c -lm
+gcc -o mnist_dnn deeplearning.c -lm
