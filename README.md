@@ -12,7 +12,7 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
   - 2 hidden layers
   - 16 neurons per hidden layer  
 - **Training:**
-  - 50 epochs (default, but beware of overflow issues with higher epochs)
+  - 50 epochs
   - Learning rate: 0.000085  
 - **Activation function:** ReLU for hidden layers, softmax for output
 
