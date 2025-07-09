@@ -18,14 +18,15 @@ typedef struct _LayerMem {
 } Layer;
 
 const int INPUT_SIZE = 784;
-const int LAYER_SIZE = 16;
+const int LAYER_SIZE = 128;
 const int OUTPUT_SIZE = 10;
 const int NETWORK_SIZE = 2;
 const float HETA = 0.000085f;
-const int EPOCHS = 50;
+const int EPOCHS = 100;
 
 const char * train_file = "mnist_train.csv";
 const char * test_file = "mnist_test.csv";
+char * weight_file_name;
 
 Layer * layers;
 int input_label;
@@ -34,6 +35,11 @@ float * delta;
 float * temp_delta;
 
 FILE * readFile;
+FILE * weightFile;
+FILE * targetFile = NULL;
+
+int currently_training = 1;
+int train_mode = 0;
 
 void allocateNetwork();
 void deAllocateNetwork();
@@ -52,14 +58,43 @@ float activationFunctionDerivative(float input);
 void lastLayerActivationFunction(float *input, int size);
 void backPropagate();
 
+void generateWeightsFilename();
+void saveWeightsToCSV();
+void loadWeightsFromCSV();
+void classify();
+
 void printWeights();
 
-int main(){
+int main(int argc, char * argv[]){
+    for(int i = 1; i < argc; i++){
+        if(strcmp(argv[i], "--train") == 0){
+            train_mode = 1;
+        }
+        else if(strncmp(argv[i], "--classify=", 11) == 0){
+            targetFile = fopen((char *)(argv[i] + 11 * sizeof(char)), "r");
+        }
+    }
     allocateNetwork();
-    populateNetwork();
-    trainNetwork();
-    testNetwork();
+    generateWeightsFilename();
+    if(!train_mode) // Don't use else as, if loadWeightsFromCSV() fails, training is required.
+        loadWeightsFromCSV();
+    if(train_mode){
+        populateNetwork();
+        trainNetwork();
+        testNetwork();
+        saveWeightsToCSV();
+    }
+    else{
+        testNetwork();
+    }
+    currently_training = 0; // for readline();
+    if(targetFile != NULL){
+        readFile = targetFile;
+        classify();
+        fclose(targetFile);
+    }
     deAllocateNetwork();
+    return 0;
 }
 
 void printWeights(){
@@ -121,7 +156,6 @@ void allocateNetwork(){
 
 void deAllocateNetwork(){
     for(int i = 0; i <= LAST; i++){
-        if(layers[i].input_matrix) free(layers[i].input_matrix);
         if(layers[i].weight_matrix) free(layers[i].weight_matrix);
         if(layers[i].bias_matrix) free(layers[i].bias_matrix);
         if(layers[i].output_matrix) free(layers[i].output_matrix);
@@ -213,13 +247,15 @@ int readline(){
     // Extract the label (first token)
     char *token = strtok(line, ",");
     if (!token) return 0;
-    input_label = atoi(token);
-
+    if(currently_training){
+        input_label = atoi(token);
+        token = strtok(NULL, ",");
+    }
     // Extract the next 784 pixels
     for (int i = 0; i < INPUT_SIZE; i++) {
-        token = strtok(NULL, ",");
         if (!token) return 0; // malformed line
         layers[0].input_matrix[i] = strtof(token, NULL) / 255.0f;
+        token = strtok(NULL, ",");
     }
     return 1; // success
 }
@@ -351,7 +387,146 @@ void testNetwork(){
         }
     }
 
-    printf("Correct: %d\nWrong: %d\nTotal: %d\nAccuracy: %f", correct, wrong, correct + wrong, (float) correct / (correct + wrong));
+    printf("Correct: %d\nWrong: %d\nTotal: %d\nAccuracy: %.2f%%\n", correct, wrong, correct + wrong, (float) correct / (correct + wrong) * 100);
 
     fclose(readFile);
+}
+
+void saveWeightsToCSV() {
+    weightFile = fopen(weight_file_name, "w");
+    if (!weightFile) {
+        perror("Error opening file to save weights");
+        return;
+    }
+
+    for (int i = 1; i <= LAST; i++) {
+        int n_in, n_out;
+
+        if (i == 1) {
+            n_in = INPUT_SIZE;
+            n_out = LAYER_SIZE;
+        } else if (i == LAST) {
+            n_in = LAYER_SIZE;
+            n_out = OUTPUT_SIZE;
+        } else {
+            n_in = LAYER_SIZE;
+            n_out = LAYER_SIZE;
+        }
+
+        for (int out = 0; out < n_out; out++) {
+            for (int in = 0; in < n_in; in++) {
+                fprintf(weightFile, "%.6f", layers[i].weight_matrix[out * n_in + in]);
+                if (in < n_in - 1)
+                    fprintf(weightFile, ",");
+            }
+            fprintf(weightFile, "\n");
+        }
+
+        for (int j = 0; j < n_out; j++) {
+            fprintf(weightFile, "%.6f", layers[i].bias_matrix[j]);
+            if (j < n_out - 1) fprintf(weightFile, ",");
+        }
+        fprintf(weightFile, "\n");
+
+    }
+
+    fclose(weightFile);
+    printf("Weights saved to %s\n", weight_file_name);
+}
+
+void loadWeightsFromCSV() {
+    weightFile = fopen(weight_file_name, "r");
+    if (!weightFile) {
+        train_mode = 1;
+        printf("No weight file found, training the model...\n");
+        return;
+    }
+
+    char line[10000];
+    for (int i = 1; i <= LAST; i++) {
+        int n_in, n_out;
+
+        if (i == 1) {
+            n_in = INPUT_SIZE;
+            n_out = LAYER_SIZE;
+        } else if (i == LAST) {
+            n_in = LAYER_SIZE;
+            n_out = OUTPUT_SIZE;
+        } else {
+            n_in = LAYER_SIZE;
+            n_out = LAYER_SIZE;
+        }
+
+        for (int out = 0; out < n_out; out++) {
+            if (!fgets(line, sizeof(line), weightFile)) {
+                fprintf(stderr, "Error: not enough lines in weights file for layer %d, training...\n", i);
+                train_mode = 1;
+                    return;
+                break;
+            }
+
+            char *token = strtok(line, ",");
+            for (int in = 0; in < n_in; in++) {
+                if (!token) {
+                    fprintf(stderr, "Error: not enough values in layer %d neuron %d, training...\n", i, out);
+                    train_mode = 1;
+                    return;
+                }
+                layers[i].weight_matrix[out * n_in + in] = strtof(token, NULL);
+                token = strtok(NULL, ",");
+            }
+        }
+
+        if (!fgets(line, sizeof(line), weightFile)) {
+            fprintf(stderr, "Error: missing bias line for layer %d, training...\n", i);
+            train_mode = 1;
+            return;
+        }
+        char *token = strtok(line, ",");
+        for (int j = 0; j < n_out; j++) {
+            if (!token) break;
+            layers[i].bias_matrix[j] = strtof(token, NULL);
+            token = strtok(NULL, ",");
+        }
+
+    }
+
+    fclose(weightFile);
+    printf("Weights loaded from %s\n", weight_file_name);
+}
+
+
+void generateWeightsFilename() {
+    static char filename[512];
+
+    snprintf(filename, sizeof(filename),
+             "weights_%s_input%d_output%d_layer%d_layers%d_epochs%d_heta%.8f.csv",
+             strrchr(train_file, '/') ? strrchr(train_file, '/') + 1 : train_file, // just the filename
+             INPUT_SIZE,
+             OUTPUT_SIZE,
+             LAYER_SIZE,
+             NETWORK_SIZE,
+             EPOCHS,
+             HETA);
+
+    // Replace any periods in the filename (except the last one for `.csv`) to avoid file system issues
+    for (char *p = filename; *p; p++) {
+        if (*p == '.' && strcmp(p, ".csv") != 0) {
+            *p = '_';
+        }
+    }
+
+    weight_file_name = filename;
+}
+
+void classify() {
+    if (!targetFile) {
+        printf("No classification file provided.\n");
+        return;
+    }
+    int sample_index = 0;
+    while (readline()) {
+        calculateLabel();
+        printf("Sample %d classified as: %d\n", sample_index++, output_label);
+    }
 }
