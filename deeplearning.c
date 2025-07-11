@@ -41,11 +41,13 @@ FILE * targetFile = NULL;
 int currently_training = 1;
 int train_mode = 0;
 
+float max_accuracy = 0;
+
 void allocateNetwork();
 void deAllocateNetwork();
 void populateNetwork();
 void trainNetwork();
-void testNetwork();
+void testNetwork(int save);
 
 float rand_normal();
 float random_weight();
@@ -81,9 +83,9 @@ int main(int argc, char * argv[]){
     if(train_mode){
         populateNetwork();
         trainNetwork();
-        testNetwork();
-        saveWeightsToCSV();
+        loadWeightsFromCSV();
     }
+    testNetwork(0);
     
     currently_training = 0; // for readline();
     if(targetFile != NULL){
@@ -361,12 +363,13 @@ void trainNetwork(){
             backPropagate();
         }
         printf("Epoch %d, Total Loss = %f, Count = %d, Average Loss = %.5f\n", epoch, total_loss, count, total_loss / count);
+        testNetwork(1);
         rewind(readFile);
     }
     fclose(readFile);
 }
 
-void testNetwork(){
+void testNetwork(int save){
     readFile = fopen(test_file, "r");
     if (!readFile) {
         perror("Failed to open test file");
@@ -385,7 +388,12 @@ void testNetwork(){
         }
     }
 
-    printf("Correct: %d\nWrong: %d\nTotal: %d\nAccuracy: %.2f%%\n", correct, wrong, correct + wrong, (float) correct / (correct + wrong) * 100);
+    float accuracy = (float) correct / (correct + wrong);
+    printf("Correct: %d\nWrong: %d\nTotal: %d\nAccuracy: %.2f%%\n", correct, wrong, correct + wrong, accuracy * 100);
+    if(accuracy > max_accuracy && save){
+        saveWeightsToCSV();
+        max_accuracy = accuracy;
+    }
 
     fclose(readFile);
 }
