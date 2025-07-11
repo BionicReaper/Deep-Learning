@@ -35,6 +35,7 @@ float * delta;
 float * temp_delta;
 
 FILE * readFile;
+FILE * testFile;
 FILE * weightFile;
 FILE * targetFile = NULL;
 
@@ -370,8 +371,8 @@ void trainNetwork(){
 }
 
 void testNetwork(int save){
-    readFile = fopen(test_file, "r");
-    if (!readFile) {
+    testFile = fopen(test_file, "r");
+    if (!testFile) {
         perror("Failed to open test file");
         return;
     }
@@ -395,7 +396,7 @@ void testNetwork(int save){
         max_accuracy = accuracy;
     }
 
-    fclose(readFile);
+    fclose(testFile);
 }
 
 void saveWeightsToCSV() {
