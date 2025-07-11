@@ -9,10 +9,10 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
 - **Language:** C (no external ML libraries)  
 - **Dataset:** MNIST (28x28 grayscale images, 10 classes: digits 0-9)  
 - **Model:** Fully connected neural network with:
-  - 2 hidden layers
-  - 16 neurons per hidden layer  
+  - 3 hidden layers
+  - 512 neurons per hidden layer  
 - **Training:**
-  - 50 epochs
+  - 150 epochs
   - Learning rate: 0.000085  
 - **Activation function:** ReLU for hidden layers, softmax for output
 
@@ -31,7 +31,7 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
 1. **Data Loading:** Reads MNIST data from CSV files.  
 2. **Network Architecture:**
    - Input layer: 784 nodes (flattened 28x28 image)  
-   - Hidden layers: 2 layers with 16 neurons each  
+   - Hidden layers: 3 layers with 512 neurons each  
    - Output layer: 10 neurons (digit classes)  
 3. **Forward Pass:** Matrix multiplications + ReLU activations for hidden layers, softmax for output.  
 4. **Backpropagation:** Updates weights and biases using gradient descent.  
@@ -42,7 +42,13 @@ This project implements a simple Deep Neural Network (DNN) from scratch in C to 
 
 ## Usage
 
-1. Compile the program:
+1. Install python Pillow library:
 
 ```bash
-gcc -o mnist_dnn deeplearning.c -lm
+pip install Pillow
+```
+
+2. Run the python launcer script
+
+```bash
+python classify.py input.png
