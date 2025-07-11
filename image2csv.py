@@ -2,7 +2,7 @@ from PIL import Image
 import sys
 
 # Open the image, convert to grayscale, resize to 28x28
-img = Image.open(sys.argv[1]).convert('L').resize((28, 28))
+img = Image.open(sys.argv[1]).convert('L').resize((28, 28), resample=Image.LANCZOS)
 
 # Get pixel data
 pixels = img.getdata()
