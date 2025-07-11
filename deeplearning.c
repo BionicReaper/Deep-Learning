@@ -18,11 +18,11 @@ typedef struct _LayerMem {
 } Layer;
 
 const int INPUT_SIZE = 784;
-const int LAYER_SIZE = 128;
+const int LAYER_SIZE = 512;
 const int OUTPUT_SIZE = 10;
-const int NETWORK_SIZE = 2;
+const int NETWORK_SIZE = 3;
 const float HETA = 0.000085f;
-const int EPOCHS = 100;
+const int EPOCHS = 150;
 
 const char * train_file = "mnist_train.csv";
 const char * test_file = "mnist_test.csv";
@@ -84,9 +84,7 @@ int main(int argc, char * argv[]){
         testNetwork();
         saveWeightsToCSV();
     }
-    else{
-        testNetwork();
-    }
+    
     currently_training = 0; // for readline();
     if(targetFile != NULL){
         readFile = targetFile;
